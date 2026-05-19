@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FeatherLog - Avian Moult Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* Professional Academic Palette */
+            --forest-deep: #1e3f20;
+            --mint-muted: #f1f7f2;
+            --slate-dark: #2c3e50;
+            --slate-light: #7f8c8d;
+            --bg-neutral: #f4f6f7;
+            --card-white: #ffffff;
+            --border-muted: #dcdde1;
+            
+            /* Status Colors */
+            --color-0: #7f8c8d;
+            --color-early: #d35400;
+            --color-mid: #27ae60;
+            --color-late: #16a085;
+            --color-complete: #2980b9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-neutral);
+            color: var(--slate-dark);
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1150px;
+            width: 100%;
+        }
+
+        header {
+            margin-bottom: 35px;
+            border-bottom: 2px solid var(--forest-deep);
+            padding-bottom: 20px;
+        }
+
+        header h1 {
+            color: var(--forest-deep);
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--slate-light);
+            margin-top: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        /* Clean Two-Column Layout Grid */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 850px) {
+            .main-layout {
+                grid-template-columns: 1.1fr 0.9fr;
+            }
+        }
+
+        .card {
+            background: var(--card-white);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(44, 62, 80, 0.03);
+            border: 1px solid var(--border-muted);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h2 {
+            color: var(--slate-dark);
+            margin-bottom: 22px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--slate-dark);
+        }
+
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-muted);
+            border-radius: 4px;
+            outline: none;
+            background-color: #fafbfc;
+            color: var(--slate-dark);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--forest-deep);
+            background-color: var(--card-white);
+        }
+
+        /* Secondary Grid for Feather Inputs */
+        .feathers-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .feather-box {
+            text-align: center;
+        }
+
+        .feather-box label {
+            font-size: 0.8rem;
+            color: var(--slate-light);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .feather-box input {
+            width: 100%;
+            padding: 10px 5px;
+            text-align: center;
+            border: 1px solid var(--border-muted);
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--forest-deep);
+            background: #fafbfc;
+        }
+
+        /* Analytics Engine Panels */
+        .metrics-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .metric-card {
+            background: var(--mint-muted);
+            padding: 22px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid rgba(30, 63, 32, 0.08);
+        }
+
+        .metric-card p {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--slate-light);
+            font-weight: 600;
+        }
+
+        .metric-card .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--forest-deep);
+            margin-top: 4px;
+        }
+
+        /* Dynamic Status Badge Styling */
+        .status-container {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 50px;
+            color: #ffffff;
+            background-color: var(--color-0);
+            transition: all 0.3s ease;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            margin-top: 15px;
+            height: 240px;
+            width: 100%;
+        }
+
+        /* Premium Export Button CSS */
+        .export-btn {
+            background-color: var(--forest-deep);
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: auto; /* Pushes button to the very bottom of the card container */
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn:hover {
+            background-color: #2c5e2f;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>FeatherLog</h1>
+        <p>Field Intelligence System for Avian Moult &amp; Phenology Tracking</p>
+    </header>
+
+    <div class="main-layout">
+        <main class="card">
+            <h2>Field Data Capture</h2>
+            <form id="moultForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="birdId">Specimen Ring / Tag ID</label>
+                    <input type="text" id="birdId" value="FUTA-2026-0412">
+                </div>
+                <div class="form-group">
+                    <label for="species">Taxonomic Species (Avian)</label>
+                    <input type="text" id="species" value="Pycnonotus barbatus (Common Bulbul)">
+                </div>
+                <div class="form-group">
+                    <label for="date">Capture Timestamp</label>
+                    <input type="date" id="date">
+                </div>
+
+                <div class="form-group" style="margin-top: 25px;">
+                    <label style="margin-bottom: 2px;">Primary Remiges Profiles (P1 - P10)</label>
+                    <span style="font-size: 0.75rem; color: var(--slate-light); display: block; margin-bottom: 12px;">
+                        Input values 0 (Old/Unshed) through 5 (Fully Renewed / Completed)
+                    </span>
+                    
+                    <div class="feathers-grid">
+                        <div class="feather-box"><label>P1</label><input type="number" class="feather-score" min="0" max="5" value="5"></div>
+                        <div class="feather-box"><label>P2</label><input type="number" class="feather-score" min="0" max="5" value="5"></div>
+                        <div class="feather-box"><label>P3</label><input type="number" class="feather-score" min="0" max="5" value="4"></div>
+                        <div class="feather-box"><label>P4</label><input type="number" class="feather-score" min="0" max="5" value="3"></div>
+                        <div class="feather-box"><label>P5</label><input type="number" class="feather-score" min="0" max="5" value="1"></div>
+                        <div class="feather-box"><label>P6</label><input type="number" class="feather-score" min="0" max="5" value="0"></div>
+                        <div class="feather-box"><label>P7</label><input type="number" class="feather-score" min="0" max="5" value="0"></div>
+                        <div class="feather-box"><label>P8</label><input type="number" class="feather-score" min="0" max="5" value="0"></div>
+                        <div class="feather-box"><label>P9</label><input type="number" class="feather-score" min="0" max="5" value="0"></div>
+                        <div class="feather-box"><label>P10</label><input type="number" class="feather-score" min="0" max="5" value="0"></div>
+                    </div>
+                </div>
+            </form>
+            
+            <button class="export-btn" id="exportBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export Field Record (.CSV)
+            </button>
+        </main>
+
+        <section class="card">
+            <h2>Analytical Telemetry</h2>
+            
+            <div class="metrics-container">
+                <div class="metric-card">
+                    <p>Total Moult Score</p>
+                    <div class="value" id="totalScore">0</div>
+                    <span style="font-size: 0.7rem; color: var(--slate-light);">Index Threshold: 50</span>
+                </div>
+                <div class="metric-card">
+                    <p>Relative Moult Index</p>
+                    <div class="value" id="moultIndex">0%</div>
+                </div>
+            </div>
+
+            <div class="status-container">
+                <div class="status-badge" id="statusBadge">Cycle Not Started</div>
+            </div>
+
+            <h2>Growth Vector Visualization</h2>
+            <div class="chart-wrapper">
+                <canvas id="moultChart"></canvas>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    // Set field calendar timestamp natively
+    document.getElementById('date').valueAsDate = new Date();
+
+    const scoreInputs = document.querySelectorAll('.feather-score');
+    const totalScoreEl = document.getElementById('totalScore');
+    const moultIndexEl = document.getElementById('moultIndex');
+    const statusBadgeEl = document.getElementById('statusBadge');
+    const exportBtnEl = document.getElementById('exportBtn');
+    
+    // Build chart dataset inside the elegant forest colorway
+    const ctx = document.getElementById('moultChart').getContext('2d');
+    const moultChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10'],
+            datasets: [{
+                label: 'Relative Structural Progression Status',
+                data: [5, 5, 4, 3, 1, 0, 0, 0, 0, 0],
+                backgroundColor: '#1e3f20', 
+                borderRadius: 2,
+                hoverBackgroundColor: '#2c5e2f'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    min: 0,
+                    max: 5,
+                    ticks: { stepSize: 1, color: '#7f8c8d' },
+                    grid: { color: '#eaeded' }
+                }
+            }
+        }
+    });
+
+    // Real-time calculation mechanics 
+    function runAnalyticalEngine() {
+        let numericalSum = 0;
+        let mappingDataArray = [];
+
+        scoreInputs.forEach(element => {
+            let extractedValue = parseInt(element.value) || 0;
+            
+            // Ecological guardrails for data integrity
+            if (extractedValue < 0) { extractedValue = 0; element.value = 0; }
+            if (extractedValue > 5) { extractedValue = 5; element.value = 5; }
+            
+            numericalSum += extractedValue;
+            mappingDataArray.push(extractedValue);
+        });
+
+        totalScoreEl.textContent = numericalSum;
+        
+        // Exact mathematical indexing for ornithological reports
+        let computationalIndex = (numericalSum / 50) * 100;
+        moultIndexEl.textContent = computationalIndex.toFixed(0) + '%';
+
+        // Dynamic Badge Conditional Logic (Biological Phenology Assessment)
+        if (computationalIndex === 0) {
+            statusBadgeEl.textContent = "Cycle Not Started (Unshed)";
+            statusBadgeEl.style.backgroundColor = "var(--color-0)";
+        } else if (computationalIndex > 0 && computationalIndex <= 30) {
+            statusBadgeEl.textContent = "Early-Stage Moult Initiation";
+            statusBadgeEl.style.backgroundColor = "var(--color-early)";
+        } else if (computationalIndex > 30 && computationalIndex <= 75) {
+            statusBadgeEl.textContent = "Mid-Stage Active Replacement";
+            statusBadgeEl.style.backgroundColor = "var(--color-mid)";
+        } else if (computationalIndex > 75 && computationalIndex < 100) {
+            statusBadgeEl.textContent = "Late-Stage Cycle Termination";
+            statusBadgeEl.style.backgroundColor = "var(--color-late)";
+        } else if (computationalIndex === 100) {
+            statusBadgeEl.textContent = "Complete Cycle / Renewed Plumage";
+            statusBadgeEl.style.backgroundColor = "var(--color-complete)";
+        }
+
+        // Update UI chart component dynamically
+        moultChart.data.datasets[0].data = mappingDataArray;
+        moultChart.update();
+    }
+
+    // Comma-Separated Values (CSV) Export Engine Logic
+    function exportToCSV() {
+        const birdId = document.getElementById('birdId').value;
+        const species = document.getElementById('species').value;
+        const date = document.getElementById('date').value;
+        const totalScore = totalScoreEl.textContent;
+        const moultIndex = moultIndexEl.textContent;
+
+        // Gather all 10 individual feather numbers
+        let featherScores = [];
+        scoreInputs.forEach(input => {
+            featherScores.push(input.value);
+        });
+
+        // Construct standard spreadsheet data row format
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Create Spreadsheet Headers
+        csvContent += "Bird ID,Species,Date,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,Total Score,Moult Index\n";
+        
+        // Append Data Array Values separated by commas
+        csvContent += `"${birdId}","${species}","${date}",${featherScores.join(",")},${totalScore},"${moultIndex}"\n`;
+
+        // Encode URI data string pattern for native downpour
+        const encodedUri = encodeURI(csvContent);
+        const linkElement = document.createElement("a");
+        linkElement.setAttribute("href", encodedUri);
+        linkElement.setAttribute("download", `FeatherLog_Record_${birdId || 'Data'}.csv`);
+        document.body.appendChild(linkElement);
+        
+        // Programmatically trigger download action item
+        linkElement.click();
+        document.body.removeChild(linkElement);
+    }
+
+    // Attach listeners directly to tracking nodes
+    scoreInputs.forEach(element => {
+        element.addEventListener('input', runAnalyticalEngine);
+    });
+
+    // Attach listener to export action button element node
+    exportBtnEl.addEventListener('click', exportToCSV);
+
+    // Initial load process execution
+    runAnalyticalEngine();
+</script>
+
+</body>
+</html>
+
